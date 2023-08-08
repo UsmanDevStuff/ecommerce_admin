@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { Trash } from "lucide-react"
-import { Category, Image, Product } from "@prisma/client"
+import { Category, Details, Image, Product } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 
 import { Input } from "@/components/ui/input"
@@ -35,6 +35,7 @@ const formSchema = z.object({
   categoryId: z.string().min(1),
   // colorId: z.string().min(1),
   // sizeId: z.string().min(1),
+  detailsId: z.string().min(1),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional()
 });
@@ -48,13 +49,15 @@ interface ProductFormProps {
   categories: Category[];
   // colors: Color[];
   // sizes: Size[];
+  details: Details[]
 };
 
 export const ProductForm: React.FC<ProductFormProps> = ({
   initialData,
   categories,
   // sizes,
-  // colors
+  // colors,
+  details
 }) => {
   const params = useParams();
   const router = useRouter();
@@ -77,6 +80,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     categoryId: '',
     // colorId: '',
     // sizeId: '',
+    detailsId: '',
     isFeatured: false,
     isArchived: false,
   }
@@ -254,6 +258,28 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 </FormItem>
               )}
             /> */}
+            <FormField
+              control={form.control}
+              name="detailsId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Details</FormLabel>
+                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue defaultValue={field.value} placeholder="Input Details" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {details.map((detail) => (
+                        <SelectItem key={detail.id} value={detail.id}>{detail.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="isFeatured"
