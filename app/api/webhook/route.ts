@@ -37,13 +37,14 @@ export async function POST(req: Request) {
 
 
   if (event.type === "checkout.session.completed") {
+    const email = session?.customer_details?.email
     const order = await prismadb.order.update({
       where: {
         id: session?.metadata?.orderId,
       },
       data: {
         isPaid: true,
-        address: addressString,
+        address: addressString + email,
         phone: session?.customer_details?.phone || '',
       },
       include: {
