@@ -1,69 +1,65 @@
-import Stripe from "stripe"
-import { headers } from "next/headers"
-import { NextResponse } from "next/server"
+import { NextApiRequest, NextApiResponse } from "next";
+import Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
+import prismadb from "@/lib/prismadb";
 
-import { stripe } from "@/lib/stripe"
-import prismadb from "@/lib/prismadb"
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'POST') {
+    const sig = req.headers['stripe-signature']!;
+    let event: Stripe.Event;
 
-export async function POST(req: Request) {
-  const body = await req.text()
-  const signature = headers().get("Stripe-Signature") as string
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    } catch (err: any) {
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
 
-  let event: Stripe.Event
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const address = session?.customer_details?.address;
 
-  try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    )
-  } catch (error: any) {
-    return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 })
-  }
+      const addressComponents = [
+        address?.line1,
+        address?.line2,
+        address?.city,
+        address?.state,
+        address?.postal_code,
+        address?.country
+      ];
 
-  const session = event.data.object as Stripe.Checkout.Session;
-  const address = session?.customer_details?.address;
+      const addressString = addressComponents.filter((c) => c !== null).join(', ');
 
-  const addressComponents = [
-    address?.line1,
-    address?.line2,
-    address?.city,
-    address?.state,
-    address?.postal_code,
-    address?.country
-  ];
-
-  const addressString = addressComponents.filter((c) => c !== null).join(', ');
-
-
-  if (event.type === "checkout.session.completed") {
-    const order = await prismadb.order.update({
-      where: {
-        id: session?.metadata?.orderId,
-      },
-      data: {
-        isPaid: true,
-        address: addressString,
-        phone: session?.customer_details?.phone || '',
-      },
-      include: {
-        orderItems: true,
-      }
-    });
-
-    const productIds = order.orderItems.map((orderItem) => orderItem.productId);
-
-    await prismadb.product.updateMany({
-      where: {
-        id: {
-          in: [...productIds],
+      const order = await prismadb.order.update({
+        where: {
+          id: session?.metadata?.orderId,
         },
-      },
-      data: {
-        isArchived: true
-      }
-    });
-  }
+        data: {
+          isPaid: true,
+          address: addressString,
+          phone: session?.customer_details?.phone || '',
+        },
+        include: {
+          orderItems: true,
+        }
+      });
 
-  return new NextResponse(null, { status: 200 });
-};
+      const productIds = order.orderItems.map((orderItem) => orderItem.productId);
+
+      await prismadb.product.updateMany({
+        where: {
+          id: {
+            in: [...productIds],
+          },
+        },
+        data: {
+          isArchived: false
+        }
+      });
+    }
+
+    res.status(200).json({received: true});
+  } else {
+    res.setHeader('Allow', 'POST');
+    res.status(405).end('Method Not Allowed');
+  }
+}
