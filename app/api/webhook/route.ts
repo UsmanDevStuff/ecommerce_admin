@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 
 import { stripe } from "@/lib/stripe"
 import prismadb from "@/lib/prismadb"
+import { id } from "date-fns/locale"
 
 export async function POST(req: Request) {
   const body = await req.text()
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
         },
       },
       data: {
-        isArchived: false
+        isArchived: false, 
       }
     });
   }
