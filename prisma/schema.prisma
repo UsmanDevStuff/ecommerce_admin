@@ -86,6 +86,9 @@ model Order {
   orderItems OrderItem[] // Relation to OrderItem model
   isPaid     Boolean   @default(false)
   phone      String    @default("")
+  email      String    @default("")
+  orderId    String    @default("")
+  orderStatus      String    @default("")
   address    String    @default("")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
