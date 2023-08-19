@@ -62,16 +62,19 @@ export async function POST(
       }
     }
   });
-
+  
   const session = await stripe.checkout.sessions.create({
     line_items,
     mode: 'payment',
+    shipping_address_collection: {
+      allowed_countries: ['US']
+    },
     billing_address_collection: 'required',
     phone_number_collection: {
       enabled: true,
     },
-    success_url: `${process.env.FRONTEND_STORE_URL}/cart?success=1`,
-    cancel_url: `${process.env.FRONTEND_STORE_URL}/cart?canceled=1`,
+    success_url: `${process.env.FRONTEND_STORE_URL}/invoice?success=1&id=${order.id}`,
+    cancel_url: `${process.env.FRONTEND_STORE_URL}/invoice?canceled=1`,
     metadata: {
       orderId: order.id
     },
