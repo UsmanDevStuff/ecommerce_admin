@@ -37,6 +37,11 @@ export async function POST(
   products.forEach((product) => {
     line_items.push({
       quantity: 1,
+      adjustable_quantity: {
+        enabled: true,
+        minimum: 1,
+        maximum: 60
+      },
       price_data: {
         currency: 'USD',
         product_data: {
@@ -56,7 +61,7 @@ export async function POST(
           product: {
             connect: {
               id: productId
-            }
+            },    
           }
         }))
       }
